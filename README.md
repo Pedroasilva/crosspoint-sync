@@ -69,7 +69,7 @@ The device needs to be actively in the Wi-Fi transfer mode for the script to com
 
 ```bash
 # Via Git
-git clone <repository-url>
+git clone https://github.com/Pedroasilva/crosspoint-sync.git
 cd crosspoint-sync
 
 # Or download manually and extract the file
