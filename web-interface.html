@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crosspoint Sync - Web Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .status-bar {
+            padding: 20px 40px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-idle .status-dot {
+            background: #6c757d;
+            animation: none;
+        }
+        
+        .status-connected .status-dot {
+            background: #28a745;
+            animation: none;
+        }
+        
+        .status-disconnected .status-dot {
+            background: #dc3545;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-running .status-dot {
+            background: #28a745;
+        }
+        
+        .status-completed .status-dot {
+            background: #007bff;
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .operations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .operation-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            text-align: center;
+        }
+        
+        .operation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .operation-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .operation-card .icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .operation-card h3 {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+        
+        .operation-card p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .logs-section {
+            background: #212529;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .logs-header h3 {
+            color: white;
+            font-size: 1.2em;
+        }
+        
+        .logs-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .logs-output {
+            background: #1a1d23;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            padding: 20px;
+            border-radius: 10px;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .logs-output::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        .logs-output::-webkit-scrollbar-track {
+            background: #2c3038;
+            border-radius: 10px;
+        }
+        
+        .logs-output::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+        
+        .logs-output::-webkit-scrollbar-thumb:hover {
+            background: #5568d3;
+        }
+        
+        .log-line {
+            margin-bottom: 5px;
+            line-height: 1.5;
+        }
+        
+        .log-line.error {
+            color: #ff6b6b;
+        }
+        
+        .log-line.success {
+            color: #51cf66;
+        }
+        
+        .log-line.warning {
+            color: #ffd43b;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .alert {
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            border: 2px solid #0c5460;
+            color: #0c5460;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            border: 2px solid #856404;
+            color: #856404;
+        }
+        
+        footer {
+            background: #212529;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    
+    <!-- Sweet Alert 2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 Crosspoint Sync - Web Control</h1>
+            <p>Execute synchronization operations through your browser</p>
+        </header>
+        
+        <div class="status-bar">
+            <div class="status-indicator status-disconnected" id="statusIndicator">
+                <div class="status-dot"></div>
+                <span id="statusText">Checking device...</span>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="alert alert-warning" id="deviceAlert" style="display: none;">
+                <strong>⚠️ Important:</strong> Make sure your Crosspoint device is powered on and on the Wi-Fi transfer screen before executing any operation.
+            </div>
+            
+            <h2 style="margin-bottom: 20px; color: #495057;">Select an Operation:</h2>
+            
+            <div class="operations">
+                <div class="operation-card disabled" onclick="executeOperation('normalize')" data-operation="normalize" style="pointer-events: none;">
+                    <div class="icon">✏️</div>
+                    <h3>Normalization</h3>
+                    <p>Remove spaces from file names (local and remote)</p>
+                </div>
+                
+                <div class="operation-card disabled" onclick="executeOperation('backup')" data-operation="backup" style="pointer-events: none;">
+                    <div class="icon">📦</div>
+                    <h3>Full Backup</h3>
+                    <p>Backup all files from remote device</p>
+                </div>
+                
+                <div class="operation-card disabled" onclick="executeOperation('sync')" data-operation="sync" style="pointer-events: none;">
+                    <div class="icon">🔄</div>
+                    <h3>Synchronization</h3>
+                    <p>Upload files to device and convert images</p>
+                </div>
+                
+                <div class="operation-card disabled" onclick="executeOperation('all')" data-operation="all" style="pointer-events: none;">
+                    <div class="icon">🚀</div>
+                    <h3>Run All</h3>
+                    <p>Normalization + Backup + Synchronization</p>
+                </div>
+            </div>
+            
+            <div class="logs-section">
+                <div class="logs-header">
+                    <h3>📋 Execution Logs</h3>
+                    <div class="logs-controls">
+                        <button class="btn btn-primary" id="btnClear" onclick="clearLogs()">
+                            🗑️ Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="logs-output" id="logsOutput">
+                    <div class="log-line">System started. Waiting for operation...</div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Crosspoint Sync Web Interface v2.0</p>
+            <p>Server running on: <strong id="serverUrl">http://localhost:8182</strong></p>
+        </footer>
+    </div>
+    
+    <script>
+        let eventSource = null;
+        let isRunning = false;
+        let deviceCheckInterval = null;
+        let deviceConnected = false;
+        let retryCountdownInterval = null;
+        let retrySecondsLeft = 5;
+        
+        // Update status on page load
+        window.addEventListener('load', function() {
+            // Initialize cards as disabled
+            updateOperationCards(true);
+            
+            // Start checking device connectivity
+            checkDeviceConnectivity();
+            startDeviceMonitoring();
+        });
+        
+        // Start monitoring device connectivity
+        function startDeviceMonitoring() {
+            // Check immediately
+            checkDeviceConnectivity();
+            
+            // Then check every 5 seconds
+            deviceCheckInterval = setInterval(checkDeviceConnectivity, 5000);
+        }
+        
+        // Check device connectivity
+        async function checkDeviceConnectivity() {
+            // Reset countdown when checking
+            retrySecondsLeft = 5;
+            
+            try {
+                const response = await fetch('/device-status');
+                const data = await response.json();
+                
+                deviceConnected = data.connected;
+                updateDeviceStatus(data.connected);
+            } catch (error) {
+                deviceConnected = false;
+                updateDeviceStatus(false);
+            }
+        }
+        
+        // Start retry countdown
+        function startRetryCountdown() {
+            // Clear any existing countdown
+            if (retryCountdownInterval) {
+                clearInterval(retryCountdownInterval);
+            }
+            
+            retrySecondsLeft = 5;
+            updateRetryText();
+            
+            retryCountdownInterval = setInterval(() => {
+                retrySecondsLeft--;
+                if (retrySecondsLeft <= 0) {
+                    retrySecondsLeft = 5;
+                }
+                updateRetryText();
+            }, 1000);
+        }
+        
+        // Stop retry countdown
+        function stopRetryCountdown() {
+            if (retryCountdownInterval) {
+                clearInterval(retryCountdownInterval);
+                retryCountdownInterval = null;
+            }
+        }
+        
+        // Update retry text with countdown
+        function updateRetryText() {
+            const text = document.getElementById('statusText');
+            if (!deviceConnected && text) {
+                text.textContent = `Device Disconnected - Retrying in ${retrySecondsLeft}s...`;
+            }
+        }
+        
+        // Update device status indicator
+        function updateDeviceStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            const deviceAlert = document.getElementById('deviceAlert');
+            
+            // Update global state
+            deviceConnected = connected;
+            
+            indicator.className = 'status-indicator';
+            
+            if (connected) {
+                indicator.classList.add('status-connected');
+                text.textContent = 'Device Connected ✓';
+                
+                // Hide alert when device is connected
+                deviceAlert.style.display = 'none';
+                
+                // Stop retry countdown when connected
+                stopRetryCountdown();
+                
+                // Enable operation cards only if not running
+                if (!isRunning) {
+                    updateOperationCards(false);
+                }
+            } else {
+                indicator.classList.add('status-disconnected');
+                text.textContent = `Device Disconnected - Retrying in ${retrySecondsLeft}s...`;
+                
+                // Show alert when device is disconnected
+                deviceAlert.style.display = 'block';
+                
+                // Start retry countdown
+                startRetryCountdown();
+                
+                // Always disable operation cards when disconnected
+                updateOperationCards(true);
+            }
+        }
+        
+        // Check server status
+        async function checkStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+                
+                // Update device connectivity
+                deviceConnected = data.device_connected;
+                updateDeviceStatus(data.device_connected);
+            } catch (error) {
+                addLog('❌ Error connecting to server', 'error');
+            }
+        }
+        
+        // Execute operation
+        async function executeOperation(operation) {
+            if (isRunning) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Operation in Progress',
+                    text: 'An operation is already running. Please wait or stop the current operation.',
+                    confirmButtonColor: '#667eea'
+                });
+                return;
+            }
+            
+            // Check if device is connected
+            if (!deviceConnected) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Device Not Connected',
+                    text: 'Device is not connected. Please make sure your Crosspoint device is powered on and on the Wi-Fi transfer screen.',
+                    confirmButtonColor: '#667eea'
+                });
+                return;
+            }
+            
+            // Confirm before executing
+            const operationNames = {
+                'normalize': 'File Name Normalization',
+                'backup': 'Full Backup',
+                'sync': 'File Synchronization',
+                'all': 'All Operations'
+            };
+            
+            const result = await Swal.fire({
+                icon: 'question',
+                title: 'Confirm Operation',
+                text: `Execute: ${operationNames[operation]}?`,
+                showCancelButton: true,
+                confirmButtonColor: '#667eea',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, execute!',
+                cancelButtonText: 'Cancel'
+            });
+            
+            if (!result.isConfirmed) {
+                return;
+            }
+            
+            // Clear logs and start
+            clearLogs();
+            addLog(`🚀 Starting operation: ${operationNames[operation]}...`);
+            
+            // Disable operation cards and clear button
+            isRunning = true;
+            updateOperationCards(true);
+            updateClearButton(true);
+            updateOperationStatus('running');
+            
+            try {
+                // Start operation
+                const response = await fetch('/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ operation: operation })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addLog(`✓ Operation started: ${data.operation}`);
+                    startLogStream();
+                } else {
+                    addLog(`❌ Error: ${data.error}`, 'error');
+                    isRunning = false;
+                    updateClearButton(false);
+                    updateDeviceStatus(deviceConnected);
+                }
+            } catch (error) {
+                addLog(`❌ Error executing operation: ${error.message}`, 'error');
+                isRunning = false;
+                updateClearButton(false);
+                updateDeviceStatus(deviceConnected);
+            }
+        }
+        
+        // Start log streaming
+        function startLogStream() {
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            eventSource = new EventSource('/logs');
+            
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.log) {
+                    addLog(data.log);
+                } else if (data.status === 'completed') {
+                    isRunning = false;
+                    updateClearButton(false);
+                    updateDeviceStatus(deviceConnected);
+                    updateOperationStatus('completed');
+                    eventSource.close();
+                    
+                    // Check if report was generated
+                    setTimeout(checkStatus, 1000);
+                    
+                    // Resume device monitoring
+                    setTimeout(checkDeviceConnectivity, 2000);
+                }
+            };
+            
+            eventSource.onerror = function(error) {
+                addLog('❌ Error in log connection', 'error');
+                eventSource.close();
+            };
+        }
+        
+        // Add log line
+        function addLog(message, type = 'normal') {
+            const logsOutput = document.getElementById('logsOutput');
+            const logLine = document.createElement('div');
+            logLine.className = `log-line ${type}`;
+            logLine.textContent = message;
+            logsOutput.appendChild(logLine);
+            
+            // Auto scroll to bottom
+            logsOutput.scrollTop = logsOutput.scrollHeight;
+        }
+        
+        // Clear logs
+        function clearLogs() {
+            const logsOutput = document.getElementById('logsOutput');
+            logsOutput.innerHTML = '<div class="log-line">Logs cleared. Waiting for new operation...</div>';
+        }
+        
+        // Update status indicator
+        function updateOperationStatus(status) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            
+            indicator.className = 'status-indicator';
+            
+            if (status === 'running') {
+                indicator.classList.add('status-running');
+                text.innerHTML = '<span class="spinner"></span>Running Operation...';
+            } else if (status === 'completed') {
+                indicator.classList.add('status-completed');
+                text.textContent = 'Operation Completed';
+                
+                // Reset to device status after 3 seconds
+                setTimeout(() => updateDeviceStatus(deviceConnected), 3000);
+            }
+        }
+        
+        // Update operation cards state
+        function updateOperationCards(disabled) {
+            const cards = document.querySelectorAll('.operation-card');
+            cards.forEach(card => {
+                if (disabled) {
+                    card.classList.add('disabled');
+                    card.style.pointerEvents = 'none';
+                } else {
+                    card.classList.remove('disabled');
+                    card.style.pointerEvents = 'auto';
+                }
+            });
+        }
+        
+        // Update clear button state
+        function updateClearButton(disabled) {
+            const btnClear = document.getElementById('btnClear');
+            if (btnClear) {
+                btnClear.disabled = disabled;
+            }
+        }
+    </script>
+</body>
+</html>
